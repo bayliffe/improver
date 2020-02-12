@@ -173,7 +173,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
         # if input is already a single cube, return here
         if len(cubelist) == 1:
-            return cubelist[0]
+            cube = iris.util.new_axis(cubelist[0],
+                                      scalar_coord=self.blend_coord)
+            return cube
 
         # check all input cubes have the blend coordinate
         for cube in cubelist:
