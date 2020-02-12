@@ -181,11 +181,12 @@ class WeightAndBlend(BasePlugin):
         # model_configuration coordinates for multi-model blending. The merged
         # cube has a monotonically ascending blend coordinate. Plugin raises an
         # error if blend_coord is not present on all input cubes.
+        print('merging cubes')
         merger = MergeCubesForWeightedBlending(
             self.blend_coord, weighting_coord=self.weighting_coord,
             model_id_attr=model_id_attr)
         cube = merger.process(cubelist, cycletime=cycletime)
-
+        print('cubes merged')
         # if blend_coord has only one value, or is not present (case where only
         # one model has been provided for a model blend), update attributes
         # only
@@ -197,6 +198,7 @@ class WeightAndBlend(BasePlugin):
 
         # otherwise, calculate weights and blend across specified dimension
         else:
+            print('I have a blending coordinate')
             # set up special treatment for model blending
             if "model" in self.blend_coord:
                 self.blend_coord = "model_id"
