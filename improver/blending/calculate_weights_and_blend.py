@@ -203,6 +203,7 @@ class WeightAndBlend(BasePlugin):
 
             # calculate blend weights
             weights = self._calculate_blending_weights(cube)
+            print('weights', weights)
             if spatial_weights:
                 weights = self._update_spatial_weights(
                     cube, weights, fuzzy_length)
