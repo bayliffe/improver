@@ -190,8 +190,7 @@ class WeightAndBlend(BasePlugin):
         # one model has been provided for a model blend), update attributes
         # only
         coord_names = [coord.name() for coord in cube.coords()]
-        if (self.blend_coord not in coord_names or
-                len(cube.coord(self.blend_coord).points) == 1):
+        if self.blend_coord not in coord_names:
             result = cube.copy()
             if attributes_dict is not None:
                 amend_attributes(result, attributes_dict)
