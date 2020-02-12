@@ -721,6 +721,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             numpy.int64:
                 Forecast reference time point in units of input cube coordinate
         """
+        print('cycletime called:', cycletime)
         frt_coord = input_cube.coord("forecast_reference_time")
         if cycletime is None:
             return np.max(frt_coord.points)
@@ -728,6 +729,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         frt_calendar = frt_coord.units.calendar
         cycletime_point = cycletime_to_number(
             cycletime, time_unit=frt_units, calendar=frt_calendar)
+        print('cycletime returns:', np.round(cycletime_point).astype(np.int64))
         return np.round(cycletime_point).astype(np.int64)
 
     def _set_coords_to_remove(self, input_cube):
@@ -831,6 +833,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
                                       in provided weights cube.
             ValueError : If coordinate to be collapsed is not a dimension.
         """
+        print('cycletime input', cycletime)
         if not isinstance(cube, iris.cube.Cube):
             msg = ('The first argument must be an instance of iris.cube.Cube '
                    'but is {}.'.format(type(cube)))
@@ -861,6 +864,7 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         perc_coord = self.check_percentile_coord(cube)
 
         # Establish metadata changes to be made after blending
+        print('blending coord', self.blend_coord)
         self.cycletime_point = (
             self._get_cycletime_point(cube, cycletime) if self.blend_coord in [
                 "forecast_reference_time", "model_id"] else None)
