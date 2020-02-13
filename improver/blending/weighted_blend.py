@@ -876,7 +876,11 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
             result = self.percentile_weighted_mean(cube, weights, perc_coord)
         else:
             result = self.weighted_mean(cube, weights)
+        print('result in')
+        print(result)
         self._update_blended_metadata(result, attributes_dict)
+        print('result out')
+        print(result)
 
         # Re-mask output
         if isinstance(cube.data, np.ma.core.MaskedArray):
