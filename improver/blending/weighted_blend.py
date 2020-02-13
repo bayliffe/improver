@@ -167,6 +167,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
             # method returns a new cubelist with copies of input cubes
             cubelist = rebadge_forecasts_as_latest_cycle(
                 cubes_in, cycletime=cycletime)
+            for cube in cubelist:
+                print(cube)
         else:
             # copy cubes to avoid modifying inputs
             cubelist = [cube.copy() for cube in cubes_in]
