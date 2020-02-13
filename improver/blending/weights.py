@@ -463,6 +463,9 @@ class ChooseWeightsLinear(BasePlugin):
             WeightsUtilities.normalise_weights(
                 new_weights_cube.data, axis=axis))
 
+        print('weights')
+        print(new_weights_cube.data)
+
         return new_weights_cube
 
 
