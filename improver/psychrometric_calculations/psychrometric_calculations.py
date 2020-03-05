@@ -827,9 +827,36 @@ class PhaseChangeLevel(BasePlugin):
         """
         # Interpolate linearly across the remaining points
         index = ~np.isnan(phase_change_level_data)
+
+        y = 286
+        x = 226
+        print('Looking at known bad point: {}, {}'.format(y, x))
+        print('Is NaN at start of horizontal interpolate? :', ~index[y, x])
+        print('Value of point at start', phase_change_level_data[y, x])
+        nn = 100
+        nxn = [x-num for num in range(0, nn) if index[y, x - num]][0]
+        nxp = [x+num for num in range(0, nn) if index[y, x + num]][0]
+        nyn = [y-num for num in range(0, nn) if index[y - num, x]][0]
+        nyp = [y+num for num in range(0, nn) if index[y + num, x]][0]
+
+        print('Nearest x neighbours: {} --> {} <-- {}'.format(nxn, x, nxp))
+        print('Nearest y neighbours: {} --> {} <-- {}'.format(nyn, y, nyp))
+        print('Neighbour values ({}, {}): {}'.format(y, nxn, phase_change_level_data[y, nxn]))
+        print('Neighbour values ({}, {}): {}'.format(y, nxp, phase_change_level_data[y, nxp]))
+        print('Neighbour values ({}, {}): {}'.format(nyn, x, phase_change_level_data[nyn, x]))
+        print('Neighbour values ({}, {}): {}'.format(nyp, x, phase_change_level_data[nxp, x]))
+
+        print('Max neighbourhood height', max_in_nbhood_orog[y, x])
+
+        print('Neighbour orography heights along x: {} --> {} <-- {}'.format(
+            orog_data[y, nxn], orog_data[y, x], orog_data[y, nxp]))
+        print('Neighbour orography heights along y: {} --> {} <-- {}'.format(
+            orog_data[nyn, x], orog_data[y, x], orog_data[nyp, x]))
+
         index_valid_data = (
             phase_change_level_data[index] <= max_in_nbhood_orog[index])
         index[index] = index_valid_data
+
         phase_cl_filled = phase_change_level_data
         if np.any(index):
             ynum, xnum = phase_change_level_data.shape
@@ -838,7 +865,7 @@ class PhaseChangeLevel(BasePlugin):
             # Try to do the horizontal interpolation to fill in any gaps,
             # but if there are not enough points or the points are not arranged
             # in a way that allows the horizontal interpolation, skip
-            # and use nearest neighbour intead.
+            # and use nearest neighbour instead.
             try:
                 phase_change_level_data_updated = griddata(
                     np.where(index), values, (y_points, x_points),
@@ -851,6 +878,8 @@ class PhaseChangeLevel(BasePlugin):
             # This normally only impact points at the corners of the domain,
             # where the linear fit doesn't reach.
             index = ~np.isnan(phase_cl_filled)
+            print('Is NaN after bilinear interpolation? :', ~index[y, x])
+            print('Value of point after bilinear interpolation', phase_change_level_data_updated[y, x])
             index_valid_data = (
                 phase_cl_filled[index] <= max_in_nbhood_orog[index])
             index[index] = index_valid_data
@@ -861,6 +890,8 @@ class PhaseChangeLevel(BasePlugin):
                     method='nearest')
                 phase_cl_filled = phase_change_level_data_updated_2
 
+            print('Value of point after nearest neighbour', phase_cl_filled[y, x])
+
         # Set the phase change level at any points that have been filled with
         # phase change levels that are above the orography back to the
         # height of the orography.
@@ -868,6 +899,9 @@ class PhaseChangeLevel(BasePlugin):
         phase_cl_above_orog = (phase_cl_filled[index] > orog_data[index])
         index[index] = phase_cl_above_orog
         phase_cl_filled[index] = orog_data[index]
+
+        print('Value of point at end', phase_cl_filled[y, x])
+
         return phase_cl_filled
 
     def find_max_in_nbhood_orography(self, orography_cube):
@@ -935,6 +969,8 @@ class PhaseChangeLevel(BasePlugin):
             phase_change_data, max_nbhood_orog, orography)
         points = np.where(~np.isfinite(phase_change_data))
         phase_change_data[points] = updated_phase_cl[points]
+
+        print('Value of point after return', phase_change_data[286, 226])
 
         # Fill in any remaining points with "missing data" value
         remaining_points = np.where(np.isnan(phase_change_data))
