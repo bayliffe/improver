@@ -39,6 +39,8 @@ from improver import cli
 def process(*cubes: cli.inputcube):
     """Module to time-lag ensembles.
 
+    Module to generate time-lagged ensembles.
+
     Combines the realization from different forecast cycles into one cube.
     Takes an input CubeList containing forecasts from different cycles and
     merges them into a single cube.
