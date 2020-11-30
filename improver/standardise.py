@@ -164,7 +164,9 @@ class StandardiseMetadata(BasePlugin):
                 return obj.astype(required_dtype)
             return obj
 
+        print("CHECKING DTYPE")
         if cube.dtype != get_required_dtype(cube):
+            print("DTYPE NEEDS FIXING", cube.dtype, get_required_dtype(cube))
             cube.data = as_correct_dtype(cube.data, get_required_dtype(cube))
         for coord in cube.coords():
             if coord.name() in TIME_COORDS and not check_units(coord):
