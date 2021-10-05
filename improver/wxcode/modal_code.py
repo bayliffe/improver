@@ -105,14 +105,17 @@ class ModalWeatherCode(BasePlugin):
         undecided_points = np.argwhere(modal.data == UNSET_CODE_INDICATOR)
 
         for y, x in undecided_points:
-            data = cube.data[:, y, x].copy()
+            modal.data[y, x] = ModalWeatherCode.get_mode(cube.data[:, y, x])
 
-            for _, codes in GROUPED_CODES.items():
-                default_code = sorted([code for code in data if code in codes])
-                if default_code:
-                    data[np.isin(data, codes)] = default_code[0]
-            mode_result, counts = stats.mode(CODE_MAX - data)
-            modal.data[y, x] = CODE_MAX - mode_result
+    @staticmethod
+    def get_mode(data: np.ndarray) -> int:
+        data = data.copy()
+        for _, codes in GROUPED_CODES.items():
+            default_code = sorted([code for code in data if code in codes])
+            if default_code:
+                data[np.isin(data, codes)] = default_code[0]
+        mode_result, counts = stats.mode(CODE_MAX - data)
+        return CODE_MAX - mode_result
 
     @staticmethod
     def mode_aggregator(data: ndarray, axis: int) -> ndarray:
