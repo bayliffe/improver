@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate weather symbols."""
+"""Script to apply latitude-dependent thresholding to a parameter dataset."""
 
 from improver import cli
 
@@ -37,44 +37,28 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
-    wxtree: cli.inputjson = None,
-    model_id_attr: str = None,
-    check_tree: bool = False,
+    *cubes: cli.inputcube, model_id_attr: str = None,
 ):
-    """ Processes cube for Weather symbols.
+    """
+    Apply latitude-dependent thresholds to CAPE and precipitation rate to derive a
+    probability-of-lightning cube.
+    Does not collapse a realization coordinate.
 
     Args:
-        cubes (iris.cube.CubeList):
-            A cubelist containing the diagnostics required for the
-            weather symbols decision tree, these at co-incident times.
-        wxtree (dict):
-            A JSON file containing a weather symbols decision tree definition.
+        cubes (list of iris.cube.Cube):
+            A cube to be processed.
         model_id_attr (str):
-            Name of attribute recording source models that should be
-            inherited by the output cube. The source models are expected as
-            a space-separated string.
-        check_tree (bool):
-            If set the decision tree will be checked to see if it conforms to
-            the expected format; the only other argument required is the path
-            to the decision tree. If the tree is found to be valid the required
-            inputs will be listed. Setting this flag will prevent the CLI
-            performing any other actions.
+            Name of the attribute used to identify the source model for
+            blending.
 
     Returns:
         iris.cube.Cube:
-            A cube of weather symbols.
+            Cube of probabilities of lightning relative to a zero rate thresholds
     """
-    if check_tree:
-        from improver.wxcode.utilities import check_tree
-
-        return check_tree(wxtree)
-
     from iris.cube import CubeList
 
-    from improver.wxcode.weather_symbols import WeatherSymbols
+    from improver.lightning import LightningFromCapePrecip
 
-    if not cubes:
-        raise RuntimeError("Not enough input arguments. See help for more information.")
+    result = LightningFromCapePrecip()(CubeList(cubes), model_id_attr=model_id_attr)
 
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    return result

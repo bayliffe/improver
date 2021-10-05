@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -29,52 +28,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate weather symbols."""
+"""Tests for the relabel_to_period CLI."""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    *cubes: cli.inputcube,
-    wxtree: cli.inputjson = None,
-    model_id_attr: str = None,
-    check_tree: bool = False,
-):
-    """ Processes cube for Weather symbols.
-
-    Args:
-        cubes (iris.cube.CubeList):
-            A cubelist containing the diagnostics required for the
-            weather symbols decision tree, these at co-incident times.
-        wxtree (dict):
-            A JSON file containing a weather symbols decision tree definition.
-        model_id_attr (str):
-            Name of attribute recording source models that should be
-            inherited by the output cube. The source models are expected as
-            a space-separated string.
-        check_tree (bool):
-            If set the decision tree will be checked to see if it conforms to
-            the expected format; the only other argument required is the path
-            to the decision tree. If the tree is found to be valid the required
-            inputs will be listed. Setting this flag will prevent the CLI
-            performing any other actions.
-
-    Returns:
-        iris.cube.Cube:
-            A cube of weather symbols.
+def test_relabel_to_period(tmp_path):
     """
-    if check_tree:
-        from improver.wxcode.utilities import check_tree
-
-        return check_tree(wxtree)
-
-    from iris.cube import CubeList
-
-    from improver.wxcode.weather_symbols import WeatherSymbols
-
-    if not cubes:
-        raise RuntimeError("Not enough input arguments. See help for more information.")
-
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    Test relabeling a diagnostic as a period diagnostic.
+    """
+    kgo_dir = acc.kgo_root() / "relabel_to_period/"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--period", "3", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

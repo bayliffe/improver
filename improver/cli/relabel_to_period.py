@@ -29,52 +29,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate weather symbols."""
+"""CLI to relabel a diagnostic as a period diagnostic."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube,
-    wxtree: cli.inputjson = None,
-    model_id_attr: str = None,
-    check_tree: bool = False,
-):
-    """ Processes cube for Weather symbols.
+def process(cube: cli.inputcube, *, period: int = None):
+    """Relabel a diagnostic as a period diagnostic.
+
+    Modify an existing diagnostic to represent a period. This will either
+    relabel an instantaneous diagnostic to be a period diagnostic, or
+    modify a period diagnostic to have a different period. This may be
+    useful when trying to combine instantaneous and period diagnostics.
 
     Args:
-        cubes (iris.cube.CubeList):
-            A cubelist containing the diagnostics required for the
-            weather symbols decision tree, these at co-incident times.
-        wxtree (dict):
-            A JSON file containing a weather symbols decision tree definition.
-        model_id_attr (str):
-            Name of attribute recording source models that should be
-            inherited by the output cube. The source models are expected as
-            a space-separated string.
-        check_tree (bool):
-            If set the decision tree will be checked to see if it conforms to
-            the expected format; the only other argument required is the path
-            to the decision tree. If the tree is found to be valid the required
-            inputs will be listed. Setting this flag will prevent the CLI
-            performing any other actions.
+        cube (iris.cube.Cube):
+            The cube for a diagnostic that will be modified to represent the
+            required period.
+        period (int):
+            The period in hours.
 
     Returns:
         iris.cube.Cube:
-            A cube of weather symbols.
+            Cube with metadata updated to represent the required period.
+
     """
-    if check_tree:
-        from improver.wxcode.utilities import check_tree
+    from improver.utilities.temporal import relabel_to_period
 
-        return check_tree(wxtree)
-
-    from iris.cube import CubeList
-
-    from improver.wxcode.weather_symbols import WeatherSymbols
-
-    if not cubes:
-        raise RuntimeError("Not enough input arguments. See help for more information.")
-
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    return relabel_to_period(cube, period)
