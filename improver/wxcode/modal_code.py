@@ -82,8 +82,7 @@ class ModalWeatherCode(BasePlugin):
         for code in night_codes:
             cube.data[cube.data == code] += 1
 
-    @staticmethod
-    def group_codes(modal: Cube, cube: Cube):
+    def group_codes(self, modal: Cube, cube: Cube):
         """In instances where the mode returned is not significant, i.e. the
         weather code chosen occurs infrequently in the period, the codes can be
         grouped to yield a more definitive period code. Given the uncertainty
@@ -102,20 +101,29 @@ class ModalWeatherCode(BasePlugin):
                 The original input data. Data relating to unset points will be
                 grouped and the mode recalculated."""
 
-        undecided_points = np.argwhere(modal.data == UNSET_CODE_INDICATOR)
-
-        for y, x in undecided_points:
-            modal.data[y, x] = ModalWeatherCode.get_mode(cube.data[:, y, x])
+        modal.data = np.where(
+            modal.data == UNSET_CODE_INDICATOR,
+            np.apply_along_axis(self._get_sig_group_value, 0, cube.data),
+            modal.data,
+        )
 
     @staticmethod
-    def get_mode(data: np.ndarray) -> int:
+    def _get_sig_group_value(data: np.ndarray) -> int:
+        """
+        Gets the least significant weather type (lowest number in a group that is
+        found in the data) that matches one of the GROUPED_CODES.
+
+        Args:
+            data:
+                1D array of weather codes valid at a single point
+        """
         data = data.copy()
         for _, codes in GROUPED_CODES.items():
             default_code = sorted([code for code in data if code in codes])
             if default_code:
                 data[np.isin(data, codes)] = default_code[0]
-        mode_result, counts = stats.mode(CODE_MAX - data)
-        return CODE_MAX - mode_result
+        mode_result, _ = stats.mode(CODE_MAX - data)
+        return CODE_MAX - mode_result[0]
 
     @staticmethod
     def mode_aggregator(data: ndarray, axis: int) -> ndarray:
