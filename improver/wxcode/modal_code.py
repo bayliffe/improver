@@ -82,7 +82,7 @@ class ModalWeatherCode(BasePlugin):
         for code in night_codes:
             cube.data[cube.data == code] += 1
 
-    def group_codes(self, modal: Cube, cube: Cube):
+    def group_codes(self, modal: Cube, data: np.ndarray):
         """In instances where the mode returned is not significant, i.e. the
         weather code chosen occurs infrequently in the period, the codes can be
         grouped to yield a more definitive period code. Given the uncertainty
@@ -97,13 +97,14 @@ class ModalWeatherCode(BasePlugin):
                 The modal weather code cube which contains UNSET_CODE_INDICATOR
                 values that need to be replaced with a more definitive period
                 code.
-            cube:
+            data:
                 The original input data. Data relating to unset points will be
                 grouped and the mode recalculated."""
-
+        # Move aggregation coordinate to the -1 position
+        data = np.moveaxis(data, [0], [2])
         modal.data = np.where(
             modal.data == UNSET_CODE_INDICATOR,
-            np.apply_along_axis(self._get_sig_group_value, 0, cube.data),
+            np.apply_along_axis(self._get_sig_group_value, 2, data),
             modal.data,
         )
 
@@ -125,8 +126,7 @@ class ModalWeatherCode(BasePlugin):
         mode_result, _ = stats.mode(CODE_MAX - data)
         return CODE_MAX - mode_result[0]
 
-    @staticmethod
-    def mode_aggregator(data: ndarray, axis: int) -> ndarray:
+    def mode_aggregator(self, data: ndarray, axis: int) -> ndarray:
         """An aggregator for use with iris to calculate the mode along the
         specified axis. If the modal value selected comprises less than 10%
         of data along the dimension being collapsed, the value is set to the
@@ -145,11 +145,8 @@ class ModalWeatherCode(BasePlugin):
         # Iris aggregators support indexing from the end of the array.
         if axis < 0:
             axis += data.ndim
-        # Aggregation coordinate is moved to the -1 position in initialisation;
-        # move this back to the leading coordinate
-        data = np.moveaxis(data, [axis], [0])
-        minimum_significant_count = 0.1 * data.shape[0]
-        mode_result, counts = stats.mode(CODE_MAX - data, axis=0)
+        minimum_significant_count = 0.1 * data.shape[-1]
+        mode_result, counts = stats.mode(CODE_MAX - data, axis=2)
         mode_result[counts < minimum_significant_count] = (
             CODE_MAX - UNSET_CODE_INDICATOR
         )
@@ -181,6 +178,6 @@ class ModalWeatherCode(BasePlugin):
 
         # Handle any unset points where it was hard to determine a suitable mode
         if (result.data == UNSET_CODE_INDICATOR).any():
-            self.group_codes(result, cube)
+            self.group_codes(result, cube.data)
 
         return result
