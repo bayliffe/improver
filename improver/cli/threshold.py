@@ -45,7 +45,7 @@ def process(
     threshold_units: str = None,
     comparison_operator=">",
     fuzzy_factor: float = None,
-    collapse_coord: str = None,
+    collapse_realizations: bool = False,
     vicinity: cli.comma_separated_list = None,
 ):
     """Module to apply thresholding to a parameter dataset.
@@ -91,9 +91,9 @@ def process(
             indicating a narrower fuzzy factor region / sharper threshold.
             A fuzzy factor cannot be used with a zero threshold or a
             threshold_config file.
-        collapse_coord (str):
-            An optional ability to set which coordinate we want to collapse
-            over.
+        collapse_realizations (bool):
+            If set, the realization coordinate is collapsed to calculate an
+            ensemble average threshold exceedance value.
         vicinity (list of float / int):
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
@@ -112,7 +112,6 @@ def process(
         ValueError: If threshold_config is used for fuzzy thresholding
     """
     from improver.threshold import BasicThreshold
-    from improver.utilities.cube_manipulation import collapse_realizations
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
     if threshold_config and threshold_values:
@@ -123,48 +122,12 @@ def process(
     if threshold_config and fuzzy_factor:
         raise ValueError("--threshold-config cannot be used for fuzzy thresholding")
 
-    if threshold_config:
-        thresholds = []
-        fuzzy_bounds = []
-        for key in threshold_config.keys():
-            # Ensure thresholds are float64 to avoid rounding errors during
-            # possible unit conversion.
-            thresholds.append(float(key))
-            # If the first threshold has no bounds, fuzzy_bounds is
-            # set to None and subsequent bounds checks are skipped
-            if threshold_config[key] == "None":
-                fuzzy_bounds = None
-                continue
-            fuzzy_bounds.append(tuple(threshold_config[key]))
-    else:
-        # Ensure thresholds are float64 to avoid rounding errors during possible
-        # unit conversion.
-        thresholds = [float(x) for x in threshold_values]
-        fuzzy_bounds = None
-
-    each_threshold_func_list = []
-
-    if vicinity is not None:
-        vicinity = [float(x) for x in vicinity]
-        # smooth thresholded occurrences over local vicinity
-        each_threshold_func_list.append(
-            OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_sea_mask)
-        )
-    elif land_sea_mask:
-        raise ValueError("Cannot apply land-mask cube without in-vicinity processing")
-
-    if collapse_coord == "realization":
-        # TODO change collapse_coord argument to boolean "collapse_realizations"
-        # (requires suite change)
-        each_threshold_func_list.append(collapse_realizations)
-    elif collapse_coord is not None:
-        raise ValueError("Cannot collapse over non-realization coordinate")
-
     return BasicThreshold(
-        thresholds,
+        threshold_values=threshold_values,
+        threshold_config=threshold_config,
         fuzzy_factor=fuzzy_factor,
-        fuzzy_bounds=fuzzy_bounds,
         threshold_units=threshold_units,
         comparison_operator=comparison_operator,
-        each_threshold_func=each_threshold_func_list,
-    )(cube)
+        collapse_realizations=collapse_realizations,
+        vicinity=vicinity,
+    )(cube, land_sea_mask)
