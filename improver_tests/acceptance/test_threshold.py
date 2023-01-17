@@ -145,11 +145,11 @@ def test_collapse_realization_masked_data(tmp_path):
     (
         (["--vicinity", "10000"], "kgo.nc"),
         (
-            ["--vicinity", "10000,20000", "--collapse-coord", "realization"],
+            ["--vicinity", "10000,20000", "--collapse-realizations"],
             "kgo_multiple_vicinities.nc",
         ),
         (
-            ["--vicinity", "10000", "--collapse-coord", "realization"],
+            ["--vicinity", "10000", "--collapse-realizations"],
             "kgo_collapsed.nc",
         ),
         (
@@ -165,8 +165,7 @@ def test_collapse_realization_masked_data(tmp_path):
                 acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
                 "--vicinity",
                 "10000",
-                "--collapse-coord",
-                "realization",
+                "--collapse-realizations",
             ],
             "kgo_landmask_collapsed.nc",
         ),
