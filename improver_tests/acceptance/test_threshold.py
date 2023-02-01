@@ -110,8 +110,7 @@ def test_collapse_realization(tmp_path):
         output_path,
         "--threshold-values",
         "280",
-        "--collapse-coord",
-        "realization",
+        "--collapse-realizations",
     ]
     with pytest.warns(None) as record:
         run_cli(args)
@@ -133,8 +132,7 @@ def test_collapse_realization_masked_data(tmp_path):
         output_path,
         "--threshold-values",
         "500",
-        "--collapse-coord",
-        "realization",
+        "--collapse-realizations",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -211,19 +209,3 @@ def test_vicinity_masked(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_landmask_without_vicinity():
-    """Test supplying a land-mask triggers an error"""
-    kgo_dir = acc.kgo_root() / "threshold/vicinity"
-    input_path = kgo_dir / "input.nc"
-    args = [
-        input_path,
-        acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
-        "--threshold-values",
-        "0.03",
-    ]
-    with pytest.raises(
-        ValueError, match="Cannot apply land-mask cube without in-vicinity processing"
-    ):
-        run_cli(args)
