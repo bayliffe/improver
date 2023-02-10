@@ -439,15 +439,19 @@ class BasicThreshold(PostProcessingPlugin):
                 for radius in self.vicinity
             ]
 
+        # Define an appropriate object for iterating over input realisations
+        # and create an empty threshold cube
         if self.collapse_realizations:
-            input_slices = list(input_cube.slices_over("realization"))
+            input_slices = input_cube.slices_over("realization")
+            thresholded_cube = self._create_threshold_cube(
+                input_cube.slices_over("realization").next()
+            )
         else:
             input_slices = [input_cube]
+            thresholded_cube = self._create_threshold_cube(input_cube)
 
-        # Create an empty threshold cube and a zeroed array for storing
-        # contributions (i.e. number of unmasked realization values
+        # Create zeroed array for storing contributions (i.e. number of unmasked realization values
         # contributing to calculation).
-        thresholded_cube = self._create_threshold_cube(input_slices[0])
         contribution_total = np.zeros(
             next(thresholded_cube.slices_over(self.threshold_coord_name)).shape,
             dtype=int,
