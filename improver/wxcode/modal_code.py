@@ -137,7 +137,7 @@ class ModalWeatherCode(BasePlugin):
         undecided_points = np.argwhere(modal.data == UNSET_CODE_INDICATOR)
 
         for point in undecided_points:
-            data = cube.data[(..., *point)].copy()
+            data = cube.data[(..., *point)].copy().flatten()
 
             for _, codes in GROUPED_CODES.items():
                 default_code = sorted([code for code in data if code in codes])

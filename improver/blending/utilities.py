@@ -381,6 +381,10 @@ def record_run_coord_to_attr(
         source_data = []
         for cube in source:
             source_data.extend(cube.coord(RECORD_COORD).points)
+        source_data = np.array(source_data)
+
+    if source_data.ndim > 1:
+        source_data = source_data.flatten()
 
     if discard_weights:
         all_points = []
