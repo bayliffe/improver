@@ -93,6 +93,44 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cube)
         self.assertEqual(result.coord("time").points.dtype, np.int64)
 
+    def test_enforce_standard_name_attribute(self):
+        """Test that a diagnostic with a CF compliant name that is stored in
+        the long_name attribute has this moved to the standard_name
+        attribute."""
+        expected_name = self.cube.standard_name
+        self.cube.long_name = expected_name
+        self.cube.standard_name = None
+
+        result = self.plugin.process(self.cube)
+
+        self.assertEqual(result.standard_name, expected_name)
+        self.assertEqual(result.long_name, None)
+
+    def test_duplicate_CF_name(self):
+        """Test that a diagnostic with a CF compliant name that is stored in
+        both the long_name attribute and standard_name attribute is modified
+        so that it is only stored in the latter."""
+        expected_name = self.cube.standard_name
+        self.cube.long_name = expected_name
+
+        result = self.plugin.process(self.cube)
+
+        self.assertEqual(result.standard_name, expected_name)
+        self.assertEqual(result.long_name, None)
+
+    def test_multiple_names(self):
+        """Test that a diagnostic with a CF compliant name that is stored in
+        standard_name attribute and a non-CF name stored in the long_name
+        attribute is left with only the compliant name allocated to the
+        standard_name attribute."""
+
+        self.cube.long_name = "kittens"
+
+        result = self.plugin.process(self.cube)
+
+        self.assertEqual(result.standard_name, "air_temperature")
+        self.assertEqual(result.long_name, None)
+
     def test_collapse_scalar_dimensions(self):
         """Test scalar dimension is collapsed"""
         cube = iris.util.new_axis(self.cube, "time")

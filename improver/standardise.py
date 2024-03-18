@@ -194,10 +194,12 @@ class StandardiseMetadata(BasePlugin):
         Perform compulsory and user-configurable metadata adjustments.  The
         compulsory adjustments are:
 
+        - to ensure any CF compliant diagnostic name is stored in the
+          standard_name attribute, rather than the long_name attribute;
         - to collapse any scalar dimensions apart from realization (which is expected
           always to be a dimension);
         - to cast the cube data and coordinates into suitable datatypes;
-        - to convert time-related metadata into the required units
+        - to convert time-related metadata into the required units;
         - to remove cell method ("point": "time").
 
         Args:
@@ -219,6 +221,9 @@ class StandardiseMetadata(BasePlugin):
         """
         cube = self._rm_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
+
+        # Ensure any CF name is allocated to the standard name attribute.
+        cube.rename(cube.name())
 
         if new_name:
             cube.rename(new_name)
