@@ -6,7 +6,11 @@
 """Spot data utilities."""
 
 
-def get_neighbour_finding_method_name(land_constraint: bool, minimum_dz: bool) -> str:
+def get_neighbour_finding_method_name(
+    land_constraint: bool = False,
+    sea_constraint: bool = False,
+    minimum_dz: bool = False,
+) -> str:
     """
     Create a name to describe the neighbour method based on the constraints
     provided.
@@ -15,9 +19,10 @@ def get_neighbour_finding_method_name(land_constraint: bool, minimum_dz: bool) -
         A string that describes the neighbour finding method employed.
         This is essentially a concatenation of the options.
     """
-    method_name = "{}{}{}".format(
+    method_name = "{}{}{}{}".format(
         "nearest",
         "_land" if land_constraint else "",
+        "_sea" if sea_constraint else "",
         "_minimum_dz" if minimum_dz else "",
     )
     return method_name

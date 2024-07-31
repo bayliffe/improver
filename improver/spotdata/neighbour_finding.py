@@ -46,6 +46,7 @@ class NeighbourSelection(BasePlugin):
     def __init__(
         self,
         land_constraint: bool = False,
+        sea_constraint: bool = False,
         minimum_dz: bool = False,
         search_radius: float = 1.0e4,
         site_coordinate_system: CRS = ccrs.PlateCarree(),
@@ -59,6 +60,9 @@ class NeighbourSelection(BasePlugin):
             land_constraint:
                 If True the selected neighbouring grid point must be on land,
                 where this is determined using a land_mask.
+            sea_constraint:
+                If True the selected neighbouring grid point must be a sea
+                point if available, where this is determined using a land_mask.
             minimum_dz:
                 If True the selected neighbouring grid point must be chosen to
                 minimise the vertical displacement compared to the site
@@ -90,6 +94,7 @@ class NeighbourSelection(BasePlugin):
         """
         self.minimum_dz = minimum_dz
         self.land_constraint = land_constraint
+        self.sea_constraint = sea_constraint
         self.search_radius = search_radius
         self.site_coordinate_system = site_coordinate_system
         self.site_x_coordinate = site_x_coordinate
@@ -319,6 +324,8 @@ class NeighbourSelection(BasePlugin):
         """
         if self.land_constraint:
             included_points = np.nonzero(land_mask.data)
+        elif self.sea_constraint:
+            included_points = np.where(land_mask.data == 0)
         else:
             included_points = np.where(np.isfinite(land_mask.data.data))
 
@@ -510,7 +517,7 @@ class NeighbourSelection(BasePlugin):
 
         # If further constraints are being applied, build a KD Tree which
         # includes points filtered by constraint.
-        if self.land_constraint or self.minimum_dz:
+        if self.land_constraint or self.sea_constraint or self.minimum_dz:
             # Build the KDTree, an internal test for the land_constraint checks
             # whether to exclude sea points from the tree.
             tree, index_nodes = self.build_KDTree(land_mask)
@@ -597,7 +604,9 @@ class NeighbourSelection(BasePlugin):
 
         # Construct a name to describe the neighbour finding method employed
         method_name = get_neighbour_finding_method_name(
-            self.land_constraint, self.minimum_dz
+            land_constraint=self.land_constraint,
+            sea_constraint=self.sea_constraint,
+            minimum_dz=self.minimum_dz,
         )
 
         # Create an array of indices and displacements to return

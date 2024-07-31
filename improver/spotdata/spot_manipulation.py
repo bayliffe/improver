@@ -127,7 +127,7 @@ class SpotManipulation(BasePlugin):
                 spot cube is passed in.
         """
         self.neighbour_selection_method = get_neighbour_finding_method_name(
-            land_constraint, similar_altitude
+            land_constraint=land_constraint, minimum_dz=similar_altitude
         )
         self.apply_lapse_rate_correction = apply_lapse_rate_correction
         self.fixed_lapse_rate = fixed_lapse_rate
