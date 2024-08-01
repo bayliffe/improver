@@ -50,7 +50,6 @@ class SpotManipulation(BasePlugin):
         suppress_warnings: bool = False,
         realization_collapse: bool = False,
         subset_coord: str = None,
-
     ) -> None:
         """
         Initialise the wrapper plugin using the selected options.
@@ -179,9 +178,7 @@ class SpotManipulation(BasePlugin):
                 ]
                 result = extract_subcube(result, constraint)
             else:
-                result = ResamplePercentiles()(
-                    result, percentiles=extract_percentiles
-                )
+                result = ResamplePercentiles()(result, percentiles=extract_percentiles)
         return result
 
     def process(self, cubes: CubeList) -> Cube:
@@ -245,7 +242,9 @@ class SpotManipulation(BasePlugin):
             result = collapse_realizations(result)
 
         if self.land_sea:
-            neighbour_selection_method = get_neighbour_finding_method_name(sea_constraint=True)
+            neighbour_selection_method = get_neighbour_finding_method_name(
+                sea_constraint=True
+            )
             sea_point_forecasts = SpotExtraction(
                 neighbour_selection_method=neighbour_selection_method
             )(neighbour_cube, cube)
@@ -287,7 +286,8 @@ class SpotManipulation(BasePlugin):
         if self.land_sea:
             land_fractions = neighbour_cube.coord("land_fraction").points
             forecast_values = (
-                land_fractions * result.data + (1 - land_fractions) * sea_point_forecasts.data
+                land_fractions * result.data
+                + (1 - land_fractions) * sea_point_forecasts.data
             )
             result.data = forecast_values
 
