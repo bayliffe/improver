@@ -41,6 +41,7 @@ class SpotManipulation(BasePlugin):
         apply_lapse_rate_correction: bool = False,
         fixed_lapse_rate: Optional[float] = None,
         land_constraint: bool = False,
+        land_sea: bool = False,
         similar_altitude: bool = False,
         extract_percentiles: Optional[Union[float, List[float]]] = None,
         ignore_ecc_bounds_exceedance: bool = False,
@@ -49,6 +50,7 @@ class SpotManipulation(BasePlugin):
         suppress_warnings: bool = False,
         realization_collapse: bool = False,
         subset_coord: str = None,
+
     ) -> None:
         """
         Initialise the wrapper plugin using the selected options.
@@ -126,6 +128,10 @@ class SpotManipulation(BasePlugin):
                 returned. The neighbour selection method options have no impact if a
                 spot cube is passed in.
         """
+        self.land_sea = land_sea
+        if self.land_sea:
+            land_constraint = True
+
         self.neighbour_selection_method = get_neighbour_finding_method_name(
             land_constraint=land_constraint, minimum_dz=similar_altitude
         )
@@ -138,6 +144,45 @@ class SpotManipulation(BasePlugin):
         self.suppress_warnings = suppress_warnings
         self.realization_collapse = realization_collapse
         self.subset_coord = subset_coord
+
+    def process_percentiles(self, result):
+        extract_percentiles = [np.float32(x) for x in self.extract_percentiles]
+        try:
+            perc_coordinate = find_percentile_coordinate(result)
+        except CoordinateNotFoundError:
+            if "probability_of_" in result.name():
+                result = ConvertProbabilitiesToPercentiles(
+                    ecc_bounds_warning=self.ignore_ecc_bounds_exceedance,
+                    skip_ecc_bounds=self.skip_ecc_bounds,
+                )(result, percentiles=extract_percentiles)
+                result = iris.util.squeeze(result)
+            elif result.coords("realization", dim_coords=True):
+                fast_percentile_method = not np.ma.is_masked(result.data)
+                result = PercentileConverter(
+                    "realization",
+                    percentiles=extract_percentiles,
+                    fast_percentile_method=fast_percentile_method,
+                )(result)
+            else:
+                if not self.suppress_warnings:
+                    msg = (
+                        "Diagnostic cube is not a known probabilistic type. "
+                        "The {} percentile(s) could not be extracted. The "
+                        "spot-extracted outputs will be returned without "
+                        "percentile extraction.".format(extract_percentiles)
+                    )
+                    warnings.warn(msg)
+        else:
+            if set(extract_percentiles).issubset(perc_coordinate.points):
+                constraint = [
+                    "{}={}".format(perc_coordinate.name(), extract_percentiles)
+                ]
+                result = extract_subcube(result, constraint)
+            else:
+                result = ResamplePercentiles()(
+                    result, percentiles=extract_percentiles
+                )
+        return result
 
     def process(self, cubes: CubeList) -> Cube:
         """
@@ -199,47 +244,20 @@ class SpotManipulation(BasePlugin):
         if self.realization_collapse:
             result = collapse_realizations(result)
 
+        if self.land_sea:
+            neighbour_selection_method = get_neighbour_finding_method_name(sea_constraint=True)
+            sea_point_forecasts = SpotExtraction(
+                neighbour_selection_method=neighbour_selection_method
+            )(neighbour_cube, cube)
+
         # If a probability or percentile diagnostic cube is provided, extract
         # the given percentile if available. This is done after the spot-extraction
         # to minimise processing time; usually there are far fewer spot sites than
         # grid points.
         if self.extract_percentiles:
-            extract_percentiles = [np.float32(x) for x in self.extract_percentiles]
-            try:
-                perc_coordinate = find_percentile_coordinate(result)
-            except CoordinateNotFoundError:
-                if "probability_of_" in result.name():
-                    result = ConvertProbabilitiesToPercentiles(
-                        ecc_bounds_warning=self.ignore_ecc_bounds_exceedance,
-                        skip_ecc_bounds=self.skip_ecc_bounds,
-                    )(result, percentiles=extract_percentiles)
-                    result = iris.util.squeeze(result)
-                elif result.coords("realization", dim_coords=True):
-                    fast_percentile_method = not np.ma.is_masked(result.data)
-                    result = PercentileConverter(
-                        "realization",
-                        percentiles=extract_percentiles,
-                        fast_percentile_method=fast_percentile_method,
-                    )(result)
-                else:
-                    if not self.suppress_warnings:
-                        msg = (
-                            "Diagnostic cube is not a known probabilistic type. "
-                            "The {} percentile(s) could not be extracted. The "
-                            "spot-extracted outputs will be returned without "
-                            "percentile extraction.".format(extract_percentiles)
-                        )
-                        warnings.warn(msg)
-            else:
-                if set(extract_percentiles).issubset(perc_coordinate.points):
-                    constraint = [
-                        "{}={}".format(perc_coordinate.name(), extract_percentiles)
-                    ]
-                    result = extract_subcube(result, constraint)
-                else:
-                    result = ResamplePercentiles()(
-                        result, percentiles=extract_percentiles
-                    )
+            result = self.process_percentiles(result)
+            if self.land_sea:
+                sea_point_forecasts = self.process_percentiles(sea_point_forecasts)
 
         # Check whether a lapse rate cube has been provided
         if self.apply_lapse_rate_correction:
@@ -260,6 +278,18 @@ class SpotManipulation(BasePlugin):
                     "option to apply the lapse rate correction was enabled. No lapse rate "
                     "correction could be applied."
                 )
+
+        # Use the land forecast, possibly lapse rate adjusted, and modify
+        # it further by blending the nearest sea point (if available) into
+        # the forecast with a weight determined by the land fraction which
+        # is provided by the neighbour ancillary. This land fraction is taken
+        # from the grid cell that corresponds to the sites nearest neighbour.
+        if self.land_sea:
+            land_fractions = neighbour_cube.coord("land_fraction").points
+            forecast_values = (
+                land_fractions * result.data + (1 - land_fractions) * sea_point_forecasts.data
+            )
+            result.data = forecast_values
 
         # Remove the internal model_grid_hash attribute if present.
         result.attributes.pop("model_grid_hash", None)
