@@ -17,6 +17,7 @@ def process(
     *,
     all_methods=False,
     land_constraint=False,
+    sea_constraint=False,
     similar_altitude=False,
     search_radius: float = None,
     node_limit: int = None,
@@ -57,6 +58,9 @@ def process(
             If True, this will return a cube containing the nearest grid point
             neighbours to spot sites that are also land points. May be used
             with the similar_altitude option.
+        sea_constraint (bool):
+            If True, this will return a cube containing the nearest grid point
+            neighbours to spot sites that are also sea points.
         similar_altitude (bool):
             If True, this will return a cube containing the nearest grid point
             neighbour to each spot site that is found, within a given search
@@ -150,13 +154,14 @@ def process(
     ]
 
     # Check valid options have been selected.
-    if all_methods is True and (land_constraint or similar_altitude):
+    if all_methods is True and (land_constraint or sea_constraint or similar_altitude):
         raise ValueError("Cannot use all_methods option with other constraints.")
 
     # Filter kwargs for those expected by plugin and which are set.
     # This preserves the plugin defaults for unset options.
     args = {
         "land_constraint": land_constraint,
+        "sea_constraint": sea_constraint,
         "minimum_dz": similar_altitude,
         "search_radius": search_radius,
         "site_coordinate_system": site_coordinate_system,
@@ -185,10 +190,36 @@ def process(
     # Call plugin to generate neighbour cubes
     if all_methods:
         methods = [
-            {**kwargs, "land_constraint": False, "minimum_dz": False},
-            {**kwargs, "land_constraint": True, "minimum_dz": False},
-            {**kwargs, "land_constraint": False, "minimum_dz": True},
-            {**kwargs, "land_constraint": True, "minimum_dz": True},
+            {
+                **kwargs,
+                "land_constraint": False,
+                "sea_constraint": False,
+                "minimum_dz": False,
+            },
+            {
+                **kwargs,
+                "land_constraint": True,
+                "sea_constraint": False,
+                "minimum_dz": False,
+            },
+            {
+                **kwargs,
+                "land_constraint": False,
+                "sea_constraint": False,
+                "minimum_dz": True,
+            },
+            {
+                **kwargs,
+                "land_constraint": True,
+                "sea_constraint": False,
+                "minimum_dz": True,
+            },
+            {
+                **kwargs,
+                "land_constraint": False,
+                "sea_constraint": True,
+                "minimum_dz": False,
+            },
         ]
 
         all_methods = iris.cube.CubeList([])
