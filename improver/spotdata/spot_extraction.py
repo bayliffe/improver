@@ -299,6 +299,7 @@ class SpotExtraction(BasePlugin):
         coordinate_cube = self.extract_coordinates(neighbour_cube)
         x_indices, y_indices = coordinate_cube.data
         spot_values = diagnostic_cube.data[..., y_indices, x_indices]
+        spot_values[..., (x_indices == 0) & (y_indices == 0)] = np.nan
 
         additional_dims = []
         if len(spot_values.shape) > 1:

@@ -41,6 +41,7 @@ class SpotManipulation(BasePlugin):
         apply_lapse_rate_correction: bool = False,
         fixed_lapse_rate: Optional[float] = None,
         land_constraint: bool = False,
+        sea_constraint: bool = False,
         similar_altitude: bool = False,
         extract_percentiles: Optional[Union[float, List[float]]] = None,
         ignore_ecc_bounds_exceedance: bool = False,
@@ -128,7 +129,7 @@ class SpotManipulation(BasePlugin):
                 spot cube is passed in.
         """
         self.neighbour_selection_method = get_neighbour_finding_method_name(
-            land_constraint, similar_altitude
+            land_constraint=land_constraint, sea_constraint=sea_constraint, minimum_dz=similar_altitude
         )
         self.apply_lapse_rate_correction = apply_lapse_rate_correction
         self.fixed_lapse_rate = fixed_lapse_rate

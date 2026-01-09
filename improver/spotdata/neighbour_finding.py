@@ -541,11 +541,18 @@ class NeighbourSelection(BasePlugin):
                 # Use the found land neighbour if it is within the
                 # search_radius, otherwise use the nearest neighbour.
                 distances = np.array([distances[0], distances[0]]).T
-                nearest_indices = np.where(
-                    distances < self.search_radius,
-                    land_neighbour_indices,
-                    nearest_indices,
-                )
+                if self.sea_constraint:
+                    nearest_indices = np.where(
+                        distances < self.search_radius,
+                        land_neighbour_indices,
+                        [0, 0],
+                    )
+                else:
+                    nearest_indices = np.where(
+                        distances < self.search_radius,
+                        land_neighbour_indices,
+                        nearest_indices,
+                    )
             else:
                 # Query the tree for self.node_limit nearby neighbours.
                 distances, node_indices = tree.query(
