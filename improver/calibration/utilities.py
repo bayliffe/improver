@@ -22,6 +22,9 @@ from numpy.ma.core import MaskedArray
 
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
+from . import CalibrationSchemas
+
+FORECAST_SCHEMA = CalibrationSchemas.FORECAST_SCHEMA
 
 
 def convert_cube_data_to_2d(
@@ -635,7 +638,7 @@ def convert_parquet_to_cube(
         freq="D",
     )
     filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
-    forecast_df = pd.read_parquet(forecast, filters=filters)
+    forecast_df = pd.read_parquet(forecast, filters=filters, schema=FORECAST_SCHEMA)
 
     # Load truths from parquet file filtering by diagnostic.
     filters = [[("diagnostic", "==", diagnostic)]]
