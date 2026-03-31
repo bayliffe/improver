@@ -646,6 +646,9 @@ class ApplyQuantileRegressionRandomForests(PostProcessingPlugin):
         )
         forecast_df = sanitise_forecast_dataframe(forecast_df, self.feature_config)
 
+        cycle_str = forecast_df["forecast_reference_time"].iloc[0].strftime("%Y%m%dT%H%MZ")
+        forecast_df.to_pickle(f"/data/scratch/benjamin.ayliffe/forecast_df_{cycle_str}.pkl")
+
         feature_values = np.array(forecast_df[feature_column_names])
         calibrated_forecast = qrf_model.predict(
             feature_values, quantiles=self.quantiles
