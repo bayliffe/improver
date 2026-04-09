@@ -380,6 +380,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         transformation: Optional[str] = None,
         pre_transform_addition: np.float32 = 0,
         unique_site_id_keys: Union[list[str], str] = "wmo_id",
+        training_site_filter: Optional[list[str]] = None,
         **kwargs,
     ) -> None:
         """Initialise the plugin.
@@ -422,6 +423,12 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                 each site, e.g. "wmo_id" or ["latitude", "longitude"].
             kwargs:
                 Additional keyword arguments for the quantile regression model.
+            training_site_filter (list of str):
+                List of site identifiers to be used for training. The site identifiers
+                will be matched against the unique_site_id_keys. If None, then all sites
+                will be used for training. This can be used for excluding sites from
+                training to enable a more realistic evaluation of the model performance
+                when applying to unseen sites. It is not likely to be used operationally.
         """
 
         self.target_name = target_name
@@ -441,6 +448,7 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         # Proportion of forecast data that can be removed when dropping NaNs.
         # Exceeding this proportion will raise a ValueError.
         self.valid_forecast_proportion = 0.5
+        self.training_site_filter = training_site_filter
 
     def fit_qrf(
         self, forecast_features: np.ndarray, target: np.ndarray
@@ -527,6 +535,20 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
         combined_df = forecast_df.merge(
             truth_df[merge_columns + ["ob_value"]], on=merge_columns, how="inner"
         )
+
+        # If a training_site_filter is provided, filter the combined DataFrame to only include
+        # the specified sites.
+        if self.training_site_filter is not None:
+            if len(self.unique_site_id_keys) > 1:
+                raise ValueError(
+                    "Training site filtering is only supported when there is a"
+                    " single unique site identifier key, e.g. wmo_id, rather"
+                    " than multiple keys such as latitude and longitude."
+                )
+            combined_df = combined_df[
+                combined_df[self.unique_site_id_keys[0]].isin(self.training_site_filter)
+            ]
+
         feature_values = np.array(combined_df[feature_column_names])
         target_values = combined_df["ob_value"].values
 
