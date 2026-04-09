@@ -545,9 +545,12 @@ class TrainQuantileRegressionRandomForests(BasePlugin):
                     " single unique site identifier key, e.g. wmo_id, rather"
                     " than multiple keys such as latitude and longitude."
                 )
+
+            print(f"No. of training sites before filtering: {len(combined_df.wmo_id.unique())}")
             combined_df = combined_df[
                 combined_df[self.unique_site_id_keys[0]].isin(self.training_site_filter)
             ]
+            print(f"No. of training sites after filtering: {len(combined_df.wmo_id.unique())}")
 
         feature_values = np.array(combined_df[feature_column_names])
         target_values = combined_df["ob_value"].values
